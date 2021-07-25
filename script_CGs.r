@@ -1,6 +1,16 @@
 # Zenodo
 require(HH)
 
+loadAndReorderSingleQuestionData <- function(path, newOrder) {
+  emptyRow <- c(0, 0, 0, 0, 0)
+  game <- read.csv(path, sep=";", row.names = 1)
+  while (nrow(game) < length(row.names)) {#append empty rows if needed
+    game[nrow(game) + 1,] <- emptyRow 
+  } 
+  game <- game[newOrder,] #reorder
+  return(game)
+}
+
 baseDir = file.path("d:", "Workspace", "retros")
 setwd(baseDir)
 
@@ -35,7 +45,7 @@ orderDynatraceA <- c(1, 2, 3, 5, 4, 6, 7)
 orderDynatraceB <- c(1, 2, 3, 4, 5, 6, 7)
 orderSentiOne <- c(1, 2, 3, 4, 5, 6, 7)
 
-emptyRow <- c(0, 0, 0, 0, 0)
+# emptyRow <- c(0, 0, 0, 0, 0)
 
 column.names <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
 
@@ -79,26 +89,12 @@ for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
   csvOutFile = paste(outPath, "csv", sep=".") 
   png(pngFile, width = 1200, height = 250) #800x300
 
-  games1 <- read.csv(myPath1, sep=";", row.names = 1)
-  games1[nrow(games1) + 1,] <- emptyRow #append an empty row
-  games1[nrow(games1) + 1,] <- emptyRow #append an empty row
-  games1 <- games1[orderOKE,] #reorder
-  games2 <- read.csv(myPath2, sep=";", row.names = 1)
-  games2[nrow(games2) + 1,] <- emptyRow #append an empty row
-  games2[nrow(games2) + 1,] <- emptyRow #append an empty row
-  games2 <- games2[orderOKE,] #reorder
-
-  games3 <- read.csv(myPath3, sep=";", row.names = 1)
-  games3[nrow(games3) + 1,] <- emptyRow #append an empty row
-  games3 <- games3[orderDynatraceA,] #reorder
-  games4 <- read.csv(myPath4, sep=";", row.names = 1)
-  games4[nrow(games4) + 1,] <- emptyRow #append an empty row
-  games4 <- games4[orderDynatraceB,] #reorder
-
-  games5 <- read.csv(myPath5, sep=";", row.names = 1)
-  games5 <- games5[orderSentiOne,] #reorder
-  games6 <- read.csv(myPath6, sep=";", row.names = 1)
-  games6 <- games6[orderSentiOne,] #reorder
+  games1 <-loadAndReorderSingleQuestionData(myPath1, orderOKE)
+  games2 <-loadAndReorderSingleQuestionData(myPath2, orderOKE)
+  games3 <-loadAndReorderSingleQuestionData(myPath3, orderDynatraceA)
+  games4 <-loadAndReorderSingleQuestionData(myPath4, orderDynatraceB)
+  games5 <-loadAndReorderSingleQuestionData(myPath5, orderSentiOne)
+  games6 <-loadAndReorderSingleQuestionData(myPath6, orderSentiOne)
 
   m = data.matrix(games1, rownames.force = NA)
   t1_array <- array(m, dim=evaluationDim, dimnames = list(row.names,column.names) )
