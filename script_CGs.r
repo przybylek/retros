@@ -1,14 +1,21 @@
 # Zenodo
 require(HH)
 
-loadAndReorderSingleQuestionData <- function(path, newOrder) {
+loadAndReorderSingleQuestionData <- function(path, newOrder, numberOfAllGames) {
   emptyRow <- c(0, 0, 0, 0, 0)
-  game <- read.csv(path, sep=";", row.names = 1)
-  while (nrow(game) < length(row.names)) {#append empty rows if needed
-    game[nrow(game) + 1,] <- emptyRow 
+  games <- read.csv(path, sep=";", row.names = 1)
+  while (nrow(games) < numberOfAllGames) {#append empty rows if needed
+    games[nrow(games) + 1,] <- emptyRow 
   } 
-  game <- game[newOrder,] #reorder
-  return(game)
+  games <- games[newOrder,] #reorder
+  return(games)
+}
+
+convertIntoArray <- function(gamesDF, rowNames, columnNames) {
+  gamesMatrix <- data.matrix(gamesDF, rownames.force = NA)
+  arrayDim <- c(length(rowNames), length(columnNames))
+  gamesArray <- array(gamesMatrix, dim=arrayDim, dimnames = list(rowNames,columnNames) )
+  return(gamesArray)
 }
 
 baseDir = file.path("d:", "Workspace", "retros")
@@ -37,22 +44,20 @@ q <- c("The game produces better results than the standard approach",
 )
 q_short <- c("Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7") 
 
+column.names <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
+likertLevels <- length(column.names)
+
 matrix.names <- c("OKE_A", "OKE_B", "Dyna_A", "Dyna_B", "Senti_A", "Senti_B")
+numberOfTeams <- length(matrix.names)
+
 row.names <- c("Starfish", "Sailboat", "Mad/Sad/Glad", "Mood++", "5L's", "360 Degrees", "Mountain climbing") #after reordering
+numberOfGames <- length(row.names)
 
 orderOKE <- c(1, 2, 6, 3, 4, 5, 7) 
 orderDynatraceA <- c(1, 2, 3, 5, 4, 6, 7)
 orderDynatraceB <- c(1, 2, 3, 4, 5, 6, 7)
 orderSentiOne <- c(1, 2, 3, 4, 5, 6, 7)
 
-# emptyRow <- c(0, 0, 0, 0, 0)
-
-column.names <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
-
-numberOfTeams <- length(matrix.names)
-numberOfGames <- length(row.names)
-likertLevels <- length(column.names)
-evaluationDim <- c(numberOfGames, likertLevels)
 plotDim <- c(numberOfGames, likertLevels, numberOfTeams)
 
 xAxisDim <- c(-100, 100)
@@ -89,35 +94,31 @@ for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
   csvOutFile = paste(outPath, "csv", sep=".") 
   png(pngFile, width = 1200, height = 250) #800x300
 
-  games1 <-loadAndReorderSingleQuestionData(myPath1, orderOKE)
-  games2 <-loadAndReorderSingleQuestionData(myPath2, orderOKE)
-  games3 <-loadAndReorderSingleQuestionData(myPath3, orderDynatraceA)
-  games4 <-loadAndReorderSingleQuestionData(myPath4, orderDynatraceB)
-  games5 <-loadAndReorderSingleQuestionData(myPath5, orderSentiOne)
-  games6 <-loadAndReorderSingleQuestionData(myPath6, orderSentiOne)
+  games1 <-loadAndReorderSingleQuestionData(myPath1, orderOKE, numberOfGames)
+  games2 <-loadAndReorderSingleQuestionData(myPath2, orderOKE, numberOfGames)
+  games3 <-loadAndReorderSingleQuestionData(myPath3, orderDynatraceA, numberOfGames)
+  games4 <-loadAndReorderSingleQuestionData(myPath4, orderDynatraceB, numberOfGames)
+  games5 <-loadAndReorderSingleQuestionData(myPath5, orderSentiOne, numberOfGames)
+  games6 <-loadAndReorderSingleQuestionData(myPath6, orderSentiOne, numberOfGames)
 
-  m = data.matrix(games1, rownames.force = NA)
-  t1_array <- array(m, dim=evaluationDim, dimnames = list(row.names,column.names) )
-  t1 <- apply( t1_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
-
+  t1_array <- convertIntoArray(games1, row.names, column.names)
+  t1 <- apply( t1_array, MARGIN=1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) ) 
+  # Setting 1 as parameter of the MARGIN argument means that we apply a function to every row of an array
+  
   m = data.matrix(games2, rownames.force = NA)
-  t2_array <- array(m, dim=evaluationDim, dimnames = list(row.names,column.names) )
+  t2_array <- convertIntoArray(games2, row.names, column.names)
   t2 <- apply( t2_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
 
-  m = data.matrix(games3, rownames.force = NA)
-  t3_array <- array(m, dim=evaluationDim, dimnames = list(row.names,column.names) )
+  t3_array <- convertIntoArray(games3, row.names, column.names)
   t3 <- apply( t3_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
 
-  m = data.matrix(games4, rownames.force = NA)
-  t4_array <- array(m, dim=evaluationDim, dimnames = list(row.names,column.names) )
+  t4_array <- convertIntoArray(games4, row.names, column.names)
   t4 <- apply( t4_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
 
-  m = data.matrix(games5, rownames.force = NA)
-  t5_array <- array(m, dim=evaluationDim, dimnames = list(row.names,column.names) )
+  t5_array <- convertIntoArray(games5, row.names, column.names)
   t5 <- apply( t5_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
 
-  m = data.matrix(games6, rownames.force = NA)
-  t6_array <- array(m, dim=evaluationDim, dimnames = list(row.names,column.names) )
+  t6_array <- convertIntoArray(games6, row.names, column.names)
   t6 <- apply( t6_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
 
 ########## temporary
