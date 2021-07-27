@@ -116,65 +116,33 @@ colnames(gamesNegativeRatio) <- row.names
 for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
   likertPlotArrays <- c()
   teamResultsCombined <- NULL # counts for each game and each question
+  gamesAvgArrayAllTeams <- NULL
   for(team in teams) {  
     csvFilePath <- file.path(baseDir, "datasets", team$teamName, csvFile)
-    games <-loadAndReorderSingleQuestionData(csvFilePath, team$gameOrder, numberOfGames)
-    t_array <- convertIntoArray(games, row.names, column.names)
-    t <- apply( t_array, MARGIN=1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) ) # calculate the average grade for each game (row)
-    # Setting 1 as parameter of the MARGIN argument means that we apply a function to every row of an array
-    
-    likertPlotArrays <- c(likertPlotArrays, t_array)
-    teamResultsCombined <- if( is.null(teamResultsCombined) ) t_array else teamResultsCombined+t_array
-  }
-   
-  # teamResultsCombined <- t1_array + t2_array + t3_array + t4_array + t5_array + t6_array
+    gamesDF <-loadAndReorderSingleQuestionData(csvFilePath, team$gameOrder, numberOfGames)
+    gamesArray <- convertIntoArray(gamesDF, row.names, column.names)       
+    likertPlotArrays <- c(likertPlotArrays, gamesArray)
+    teamResultsCombined <- if( is.null(teamResultsCombined) ) gamesArray else teamResultsCombined+gamesArray
 
+    gamesAvgArray <- apply( gamesArray, MARGIN=1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) ) # calculate the average grade for each game (row)
+    # Setting 1 as parameter of the MARGIN argument means that we apply a function to every row of an array
+    gamesAvgArrayAllTeams <- if( is.null(gamesAvgArrayAllTeams) ) gamesAvgArray else cbind(gamesAvgArrayAllTeams, gamesAvgArray)
+  }
+  
+  
   likertPlot <- array(likertPlotArrays, dim = plotDim, dimnames = list(row.names,column.names,teamNames))
   
   #Delete the 7th row ("Mountain climbing") from the array
   likertPlot <- likertPlot[-7,,]
+  # teamResultsCombined <- teamResultsCombined[-7,]
 
-  myPath1 = paste(myDir1, csvFile, sep="/") 
-  myPath2 = paste(myDir2, csvFile, sep="/") 
-  myPath3 = paste(myDir3, csvFile, sep="/") 
-  myPath4 = paste(myDir4, csvFile, sep="/") 
-  myPath5 = paste(myDir5, csvFile, sep="/") 
-  myPath6 = paste(myDir6, csvFile, sep="/")
-
+  
   outPath = paste(outDir, substr(csvFile, 1, nchar(csvFile)-4), sep="/") 
   pngFile = paste(outPath, "png", sep=".") 
   csvOutFile = paste(outPath, "csv", sep=".") 
   png(pngFile, width = 1200, height = 250) #800x300
 
-  games1 <-loadAndReorderSingleQuestionData(myPath1, orderOKE, numberOfGames)
-  games2 <-loadAndReorderSingleQuestionData(myPath2, orderOKE, numberOfGames)
-  games3 <-loadAndReorderSingleQuestionData(myPath3, orderDynatraceA, numberOfGames)
-  games4 <-loadAndReorderSingleQuestionData(myPath4, orderDynatraceB, numberOfGames)
-  games5 <-loadAndReorderSingleQuestionData(myPath5, orderSentiOne, numberOfGames)
-  games6 <-loadAndReorderSingleQuestionData(myPath6, orderSentiOne, numberOfGames)
-
-  t1_array <- convertIntoArray(games1, row.names, column.names)
-  t1 <- apply( t1_array, MARGIN=1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) ) # calculate the average grade for each game (row)
-  # Setting 1 as parameter of the MARGIN argument means that we apply a function to every row of an array
-  
-  t2_array <- convertIntoArray(games2, row.names, column.names)
-  t2 <- apply( t2_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
-
-  t3_array <- convertIntoArray(games3, row.names, column.names)
-  t3 <- apply( t3_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
-
-  t4_array <- convertIntoArray(games4, row.names, column.names)
-  t4 <- apply( t4_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
-
-  t5_array <- convertIntoArray(games5, row.names, column.names)
-  t5 <- apply( t5_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
-
-  t6_array <- convertIntoArray(games6, row.names, column.names)
-  t6 <- apply( t6_array, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
-
-
-  #Delete the 7th row ("Mountain climbing") from the array
-  # teamResultsCombined <- teamResultsCombined[-7,]
+ 
 
   i <- substr(csvFile, 2, nchar(csvFile)-4)
   title = paste(q_short[strtoi(i)], ". ", q[strtoi(i)], sep="")
@@ -193,16 +161,17 @@ for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
 
 
   ########## Generating csv files with averages ###########
-  avgMatrix <- cbind(t1, t2, t3, t4, t5, t6, t_All)
-  colnames(avgMatrix) <- c(teamNames, "ALL")
+  
+  gamesAvgArrayAllTeams <- cbind(gamesAvgArrayAllTeams, t_All)
+  colnames(gamesAvgArrayAllTeams) <- c(teamNames, "ALL")
 
   #Delete the 7th row ("Mountain climbing") from the array
-  avgMatrix <- avgMatrix[-7,]
-  write.csv(avgMatrix, file = csvOutFile, na="")
+  gamesAvgArrayAllTeams <- gamesAvgArrayAllTeams[-7,]
+  write.csv(gamesAvgArrayAllTeams, file = csvOutFile, na="")
 
   
   img <- generateChart(likertPlot, xAxisDim, title, legend=FALSE)
-  imgGamesMerged <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
+  # imgTeamResultsCombined <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
   
   print(img)
   dev.off()
