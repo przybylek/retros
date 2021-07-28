@@ -1,5 +1,8 @@
 # Zenodo
+# https://adv-r.hadley.nz/r6.html
 require(HH)
+require(repurrrsive)
+require(purrr)
 
 loadAndReorderSingleQuestionData <- function(path, newOrder, numberOfAllGames) {
   emptyRow <- c(0, 0, 0, 0, 0)
@@ -63,27 +66,22 @@ teams <- list(
   list(teamName="Senti_B", gameOrder=orderSentiOne)
 )
 
-# gameOrder <- list(orderOKE, orderOKE, orderDynatraceA, orderDynatraceB, orderSentiOne, orderSentiOne)
-# teams <- dict(items = gameOrder, keys = teamNames)
+questions <- list(
+  Q1="The game produces better results than the standard approach",
+  Q2="The game should be permanently adopted by your team",
+  Q3="The game fosters participants' creativity",
+  Q4="The game fosters participants' motivation and involvement",
+  Q5="The game improves communication among the team members",
+  Q6="The game makes participants more willing to attend the meeting",
+  Q7="The game is easy to understand and play"
+)
+
+q_short <- names(questions)
+
+#map(q_short, function(x) paste("Q",x,sep=""))
 
 myDir1 = file.path(datasetsDir, "OKE_A")
-myDir2 = file.path(datasetsDir, "OKE_B")
 
-myDir3 = file.path(datasetsDir, "Dyna_A")
-myDir4 = file.path(datasetsDir, "Dyna_B")
-
-myDir5 = file.path(datasetsDir, "Senti_A")
-myDir6 = file.path(datasetsDir, "Senti_B")
-
-q <- c("The game produces better results than the standard approach",
-       "The game should be permanently adopted by your team",
-       "The game fosters participants' creativity",
-       "The game fosters participants' motivation and involvement",
-       "The game improves communication among the team members",
-       "The game makes participants more willing to attend the meeting",
-       "The game is easy to understand and play"
-)
-q_short <- c("Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7") 
 
 column.names <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
 likertLevels <- length(column.names)
@@ -100,28 +98,28 @@ title <- ""
 
 
 #gamesAVG and gamesPositiveRatio agregate data for RadarChart
-gamesAVG <- matrix(nrow = length(q_short), ncol = length(row.names))
-gamesPositiveRatio <- matrix(nrow = length(q_short), ncol = length(row.names))
-gamesNegativeRatio <- matrix(nrow = length(q_short), ncol = length(row.names))
+gamesAVG <- matrix(nrow = length(questions), ncol = length(row.names))
+gamesPositiveRatio <- matrix(nrow = length(questions), ncol = length(row.names))
+gamesNegativeRatio <- matrix(nrow = length(questions), ncol = length(row.names))
 
-rownames(gamesAVG) <- q_short
+rownames(gamesAVG) <- names(questions)
 colnames(gamesAVG) <- row.names
 
-rownames(gamesPositiveRatio) <- q_short
+rownames(gamesPositiveRatio) <- names(questions)
 colnames(gamesPositiveRatio) <- row.names
-rownames(gamesNegativeRatio) <- q_short
+rownames(gamesNegativeRatio) <- names(questions)
 colnames(gamesNegativeRatio) <- row.names
 
 
 for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
-  likertPlotArrays <- c()
+  gamesArrayAllTeams <- c()
   teamResultsCombined <- NULL # counts for each game and each question
   gamesAvgArrayAllTeams <- NULL
   for(team in teams) {  
     csvFilePath <- file.path(baseDir, "datasets", team$teamName, csvFile)
     gamesDF <-loadAndReorderSingleQuestionData(csvFilePath, team$gameOrder, numberOfGames)
     gamesArray <- convertIntoArray(gamesDF, row.names, column.names)       
-    likertPlotArrays <- c(likertPlotArrays, gamesArray)
+    gamesArrayAllTeams <- c(gamesArrayAllTeams, gamesArray)
     teamResultsCombined <- if( is.null(teamResultsCombined) ) gamesArray else teamResultsCombined+gamesArray
 
     gamesAvgArray <- apply( gamesArray, MARGIN=1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) ) # calculate the average grade for each game (row)
@@ -130,13 +128,13 @@ for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
   }
   
   
-  likertPlot <- array(likertPlotArrays, dim = plotDim, dimnames = list(row.names,column.names,teamNames))
+  likertPlot <- array(gamesArrayAllTeams, dim = plotDim, dimnames = list(row.names,column.names,teamNames))
   
   #Delete the 7th row ("Mountain climbing") from the array
   likertPlot <- likertPlot[-7,,]
   # teamResultsCombined <- teamResultsCombined[-7,]
 
-  
+  # outPath = file.path(outDir, substr(csvFile, 1, nchar(csvFile)-4))
   outPath = paste(outDir, substr(csvFile, 1, nchar(csvFile)-4), sep="/") 
   pngFile = paste(outPath, "png", sep=".") 
   csvOutFile = paste(outPath, "csv", sep=".") 
@@ -145,7 +143,9 @@ for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
  
 
   i <- substr(csvFile, 2, nchar(csvFile)-4)
-  title = paste(q_short[strtoi(i)], ". ", q[strtoi(i)], sep="")
+
+  title = paste(q_short[strtoi(i)], ". ", as.character(questions[strtoi(i)]), sep="")
+  
 
   # averages for each game
   t_All <- apply( teamResultsCombined, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
