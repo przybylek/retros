@@ -1,8 +1,6 @@
 # Zenodo
 # https://adv-r.hadley.nz/r6.html
 require(HH)
-require(repurrrsive)
-require(purrr)
 
 loadAndReorderSingleQuestionData <- function(path, newOrder, numberOfAllGames) {
   emptyRow <- c(0, 0, 0, 0, 0)
@@ -46,24 +44,27 @@ generateChart <- function(likertArray, xAxisDim, title, legend) {
 baseDir = file.path("d:", "Workspace", "retros")
 setwd(baseDir)
 
-datasetsDir = file.path(baseDir, "datasets")
+datasetsDir = file.path(baseDir, "datasets") #subdirectories in "datasets" must be the same as teamNames
 outDir = file.path(baseDir, "out")
 
 teamNames <- c("OKE_A", "OKE_B", "Dyna_A", "Dyna_B", "Senti_A", "Senti_B")
-numberOfTeams <- length(teamNames)
 
-orderOKE <- c(1, 2, 6, 3, 4, 5, 7) 
-orderDynatraceA <- c(1, 2, 3, 5, 4, 6, 7)
-orderDynatraceB <- c(1, 2, 3, 4, 5, 6, 7)
-orderSentiOne <- c(1, 2, 3, 4, 5, 6, 7)
+gameNames <- c("Starfish", "Sailboat", "Mad/Sad/Glad", "Mood++", "5L's", "360 Degrees", "Mountain climbing") #after reordering
+numberOfGames <- length(gameNames)
+
+#order of the games in the csv files according to gameNames
+gameOrderOKE <- c(1, 2, 6, 3, 4, 5, 7) 
+gameOrderDynatraceA <- c(1, 2, 3, 5, 4, 6, 7)
+gameOrderDynatraceB <- c(1, 2, 3, 4, 5, 6, 7)
+gameOrderSentiOne <- c(1, 2, 3, 4, 5, 6, 7)
 
 teams <- list(
-  list(teamName="OKE_A", gameOrder=orderOKE),
-  list(teamName="OKE_B", gameOrder=orderOKE),
-  list(teamName="Dyna_A", gameOrder=orderDynatraceA),
-  list(teamName="Dyna_B", gameOrder=orderDynatraceB),
-  list(teamName="Senti_A", gameOrder=orderSentiOne),
-  list(teamName="Senti_B", gameOrder=orderSentiOne)
+  list(teamName="OKE_A", gameOrder=gameOrderOKE),
+  list(teamName="OKE_B", gameOrder=gameOrderOKE),
+  list(teamName="Dyna_A", gameOrder=gameOrderDynatraceA),
+  list(teamName="Dyna_B", gameOrder=gameOrderDynatraceB),
+  list(teamName="Senti_A", gameOrder=gameOrderSentiOne),
+  list(teamName="Senti_B", gameOrder=gameOrderSentiOne)
 )
 
 questions <- list(
@@ -78,19 +79,15 @@ questions <- list(
 
 q_short <- names(questions)
 
-#map(q_short, function(x) paste("Q",x,sep=""))
-
-myDir1 = file.path(datasetsDir, "OKE_A")
+# myDir1 = file.path(datasetsDir, "OKE_A")
 
 
 column.names <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
 likertLevels <- length(column.names)
 
-row.names <- c("Starfish", "Sailboat", "Mad/Sad/Glad", "Mood++", "5L's", "360 Degrees", "Mountain climbing") #after reordering
-numberOfGames <- length(row.names)
 
 
-plotDim <- c(numberOfGames, likertLevels, numberOfTeams)
+plotDim <- c(numberOfGames, likertLevels, length(teams))
 
 xAxisDim <- c(-100, 100)
 xAxisDim <- c(-9, 9)
@@ -98,27 +95,32 @@ title <- ""
 
 
 #gamesAVG and gamesPositiveRatio agregate data for RadarChart
-gamesAVG <- matrix(nrow = length(questions), ncol = length(row.names))
-gamesPositiveRatio <- matrix(nrow = length(questions), ncol = length(row.names))
-gamesNegativeRatio <- matrix(nrow = length(questions), ncol = length(row.names))
+gamesAVG <- matrix(nrow = length(questions), ncol = length(gameNames))
+gamesPositiveRatio <- matrix(nrow = length(questions), ncol = length(gameNames))
+gamesNegativeRatio <- matrix(nrow = length(questions), ncol = length(gameNames))
 
 rownames(gamesAVG) <- names(questions)
-colnames(gamesAVG) <- row.names
+colnames(gamesAVG) <- gameNames
 
 rownames(gamesPositiveRatio) <- names(questions)
-colnames(gamesPositiveRatio) <- row.names
+colnames(gamesPositiveRatio) <- gameNames
 rownames(gamesNegativeRatio) <- names(questions)
-colnames(gamesNegativeRatio) <- row.names
+colnames(gamesNegativeRatio) <- gameNames
 
+for (i in seq(1, length(questions))) {
+  question <- questions[i]
+  qId <- names(question)
+  csvFile = paste(tolower(qId), "csv", sep=".")
+  # print(csvFile)
 
-for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
+# for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
   gamesArrayAllTeams <- c()
   teamResultsCombined <- NULL # counts for each game and each question
   gamesAvgArrayAllTeams <- NULL
   for(team in teams) {  
     csvFilePath <- file.path(baseDir, "datasets", team$teamName, csvFile)
     gamesDF <-loadAndReorderSingleQuestionData(csvFilePath, team$gameOrder, numberOfGames)
-    gamesArray <- convertIntoArray(gamesDF, row.names, column.names)       
+    gamesArray <- convertIntoArray(gamesDF, gameNames, column.names)       
     gamesArrayAllTeams <- c(gamesArrayAllTeams, gamesArray)
     teamResultsCombined <- if( is.null(teamResultsCombined) ) gamesArray else teamResultsCombined+gamesArray
 
@@ -128,24 +130,24 @@ for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
   }
   
   
-  likertPlot <- array(gamesArrayAllTeams, dim = plotDim, dimnames = list(row.names,column.names,teamNames))
+  likertPlot <- array(gamesArrayAllTeams, dim = plotDim, dimnames = list(gameNames,column.names,teamNames))
   
   #Delete the 7th row ("Mountain climbing") from the array
   likertPlot <- likertPlot[-7,,]
   # teamResultsCombined <- teamResultsCombined[-7,]
 
-  # outPath = file.path(outDir, substr(csvFile, 1, nchar(csvFile)-4))
-  outPath = paste(outDir, substr(csvFile, 1, nchar(csvFile)-4), sep="/") 
-  pngFile = paste(outPath, "png", sep=".") 
-  csvOutFile = paste(outPath, "csv", sep=".") 
-  png(pngFile, width = 1200, height = 250) #800x300
 
- 
+  # outPath = paste(outDir, substr(csvFile, 1, nchar(csvFile)-4), sep="/") 
+  # pngFile = paste(outPath, "png", sep=".") 
+  pngFile = paste(tolower(qId), "png", sep=".")
+  pngFilePath <- file.path(outDir, pngFile)
+  # csvOutFile = paste(outPath, "csv", sep=".") 
+  csvOutFile = file.path(outDir, csvFile)
 
-  i <- substr(csvFile, 2, nchar(csvFile)-4)
+  png(pngFilePath, width = 1200, height = 250) #800x300
 
-  title = paste(q_short[strtoi(i)], ". ", as.character(questions[strtoi(i)]), sep="")
   
+  title = paste(qId, question, sep=". ")
 
   # averages for each game
   t_All <- apply( teamResultsCombined, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
