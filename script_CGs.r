@@ -12,10 +12,11 @@ loadAndReorderSingleQuestionData <- function(path, newOrder, numberOfAllGames) {
   return(games)
 }
 
-convertIntoArray <- function(gamesDF, rowNames, columnNames) {
+convertIntoArray <- function(gamesDF, gameNames, likertLevels) {
   gamesMatrix <- data.matrix(gamesDF, rownames.force = NA)
-  arrayDim <- c(length(rowNames), length(columnNames))
-  gamesArray <- array(gamesMatrix, dim=arrayDim, dimnames = list(rowNames, columnNames) )
+  dimNames <- list(gameNames, likertLevels)
+  arrayDim <-  as.numeric( lapply(dimNames, length) )
+  gamesArray <- array(gamesMatrix, dim=arrayDim, dimnames=dimNames)
   return(gamesArray)
 }
 
@@ -48,11 +49,9 @@ datasetsDir = file.path(baseDir, "datasets") #subdirectories in "datasets" must 
 outDir = file.path(baseDir, "out")
 
 teamNames <- c("OKE_A", "OKE_B", "Dyna_A", "Dyna_B", "Senti_A", "Senti_B")
-
 gameNames <- c("Starfish", "Sailboat", "Mad/Sad/Glad", "Mood++", "5L's", "360 Degrees", "Mountain climbing") #after reordering
-numberOfGames <- length(gameNames)
 
-#order of the games in the csv files according to gameNames
+#order of the games in the input csv files according to gameNames
 gameOrderOKE <- c(1, 2, 6, 3, 4, 5, 7) 
 gameOrderDynatraceA <- c(1, 2, 3, 5, 4, 6, 7)
 gameOrderDynatraceB <- c(1, 2, 3, 4, 5, 6, 7)
@@ -67,6 +66,8 @@ teams <- list(
   list(teamName="Senti_B", gameOrder=gameOrderSentiOne)
 )
 
+likertLevels <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
+
 questions <- list(
   Q1="The game produces better results than the standard approach",
   Q2="The game should be permanently adopted by your team",
@@ -77,21 +78,16 @@ questions <- list(
   Q7="The game is easy to understand and play"
 )
 
-q_short <- names(questions)
-
-# myDir1 = file.path(datasetsDir, "OKE_A")
-
-
-column.names <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
-likertLevels <- length(column.names)
-
-
-
-plotDim <- c(numberOfGames, likertLevels, length(teams))
-
-xAxisDim <- c(-100, 100)
-xAxisDim <- c(-9, 9)
-title <- ""
+xAxisDimensions <- list(
+  Q1=list(-5, 8),
+  Q2=list(-7, 7),
+  Q3=list(-7, 7),
+  Q4=list(-5, 8),
+  Q5=list(-8, 8),
+  Q6=list(-7, 7),
+  Q7=list(-3, 9)
+)
+xAxisDim <- c(-9, 9) #generall dimension that fit all plots
 
 
 #gamesAVG and gamesPositiveRatio agregate data for RadarChart
@@ -110,31 +106,34 @@ colnames(gamesNegativeRatio) <- gameNames
 for (i in seq(1, length(questions))) {
   question <- questions[i]
   qId <- names(question)
-  csvFileName = paste(tolower(qId), "csv", sep=".") 
+  csvFileName = paste(tolower(qId), "csv", sep=".")   
 
   gamesArrayAllTeams <- c()
   teamResultsCombined <- NULL
   gamesAvgArrayAllTeams <- NULL
   for(team in teams) {  
     csvFilePath <- file.path(baseDir, "datasets", team$teamName, csvFileName)
-    gamesDF <-loadAndReorderSingleQuestionData(csvFilePath, team$gameOrder, numberOfGames)
-    gamesArray <- convertIntoArray(gamesDF, gameNames, column.names)       
+    gamesDF <-loadAndReorderSingleQuestionData(csvFilePath, team$gameOrder, length(gameNames))
+    gamesArray <- convertIntoArray(gamesDF, gameNames, likertLevels)
     gamesArrayAllTeams <- c(gamesArrayAllTeams, gamesArray)
     teamResultsCombined <- if( is.null(teamResultsCombined) ) gamesArray else teamResultsCombined+gamesArray
     gamesAvgArray <- apply( gamesArray, MARGIN=1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) ) # calculate the average grade for each game (row)
     # Setting 1 as parameter of the MARGIN argument means that we apply a function to every row of an array
     gamesAvgArrayAllTeams <- if( is.null(gamesAvgArrayAllTeams) ) gamesAvgArray else cbind(gamesAvgArrayAllTeams, gamesAvgArray)
   }
-  
-  likertPlot <- array(gamesArrayAllTeams, dim = plotDim, dimnames = list(gameNames,column.names,teamNames))
+    
+  dimNames <- list(gameNames, likertLevels, teamNames)
+  plotDim <-  as.numeric( lapply(dimNames, length) )
+  likertArray <- array(gamesArrayAllTeams, dim = plotDim, dimnames = dimNames)
   
   #Delete the 7th row ("Mountain climbing") from the array
-  likertPlot <- likertPlot[-7,,]
+  likertArray <- likertArray[-7,,]
   # teamResultsCombined <- teamResultsCombined[-7,]
 
   title = paste(qId, question, sep=". ")
+  xAxisDim <- c(unlist(xAxisDimensions[[i]]))
 
-  imgLikert <- generateChart(likertPlot, xAxisDim, title, legend=FALSE)
+  imgLikert <- generateChart(likertArray, xAxisDim, title, legend=FALSE)
   # imgTeamResultsCombined <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
 
   ########## Generating png file with Likert charts ###########
@@ -165,12 +164,8 @@ for (i in seq(1, length(questions))) {
   #Delete the 7th row ("Mountain climbing") from the array
   gamesAvgArrayAllTeams <- gamesAvgArrayAllTeams[-7,]
   write.csv(gamesAvgArrayAllTeams, file = csvOutFilePath, na="")
-
 }
 
-xAxisDim <- c(-5, 8) #q1, q4
-xAxisDim <- c(-7, 7) #q2, q3, q6
-xAxisDim <- c(-8, 8) #q5
-xAxisDim <- c(-3, 9) #q7
+
 
 
