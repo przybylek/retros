@@ -110,25 +110,21 @@ colnames(gamesNegativeRatio) <- gameNames
 for (i in seq(1, length(questions))) {
   question <- questions[i]
   qId <- names(question)
-  csvFile = paste(tolower(qId), "csv", sep=".")
-  # print(csvFile)
+  csvFileName = paste(tolower(qId), "csv", sep=".") 
 
-# for (csvFile in list.files(path=myDir1, pattern = "\\.csv$")) {
   gamesArrayAllTeams <- c()
-  teamResultsCombined <- NULL # counts for each game and each question
+  teamResultsCombined <- NULL
   gamesAvgArrayAllTeams <- NULL
   for(team in teams) {  
-    csvFilePath <- file.path(baseDir, "datasets", team$teamName, csvFile)
+    csvFilePath <- file.path(baseDir, "datasets", team$teamName, csvFileName)
     gamesDF <-loadAndReorderSingleQuestionData(csvFilePath, team$gameOrder, numberOfGames)
     gamesArray <- convertIntoArray(gamesDF, gameNames, column.names)       
     gamesArrayAllTeams <- c(gamesArrayAllTeams, gamesArray)
     teamResultsCombined <- if( is.null(teamResultsCombined) ) gamesArray else teamResultsCombined+gamesArray
-
     gamesAvgArray <- apply( gamesArray, MARGIN=1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) ) # calculate the average grade for each game (row)
     # Setting 1 as parameter of the MARGIN argument means that we apply a function to every row of an array
     gamesAvgArrayAllTeams <- if( is.null(gamesAvgArrayAllTeams) ) gamesAvgArray else cbind(gamesAvgArrayAllTeams, gamesAvgArray)
   }
-  
   
   likertPlot <- array(gamesArrayAllTeams, dim = plotDim, dimnames = list(gameNames,column.names,teamNames))
   
@@ -136,18 +132,18 @@ for (i in seq(1, length(questions))) {
   likertPlot <- likertPlot[-7,,]
   # teamResultsCombined <- teamResultsCombined[-7,]
 
-
-  # outPath = paste(outDir, substr(csvFile, 1, nchar(csvFile)-4), sep="/") 
-  # pngFile = paste(outPath, "png", sep=".") 
-  pngFile = paste(tolower(qId), "png", sep=".")
-  pngFilePath <- file.path(outDir, pngFile)
-  # csvOutFile = paste(outPath, "csv", sep=".") 
-  csvOutFile = file.path(outDir, csvFile)
-
-  png(pngFilePath, width = 1200, height = 250) #800x300
-
-  
   title = paste(qId, question, sep=". ")
+
+  imgLikert <- generateChart(likertPlot, xAxisDim, title, legend=FALSE)
+  # imgTeamResultsCombined <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
+
+  ########## Generating png file with Likert charts ###########
+  pngFileName = paste(tolower(qId), "png", sep=".")
+  pngFilePath <- file.path(outDir, pngFileName)    
+  png(pngFilePath, width = 1200, height = 250) #800x300
+  print(imgLikert)
+  dev.off()
+
 
   # averages for each game
   t_All <- apply( teamResultsCombined, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
@@ -160,23 +156,16 @@ for (i in seq(1, length(questions))) {
   gamesNegativeRatio[strtoi(i),] <- t_negative
 
 
+  ########## Generating csv file with averages ###########
+  csvOutFilePath = file.path(outDir, csvFileName)
 
-
-  ########## Generating csv files with averages ###########
-  
   gamesAvgArrayAllTeams <- cbind(gamesAvgArrayAllTeams, t_All)
   colnames(gamesAvgArrayAllTeams) <- c(teamNames, "ALL")
 
   #Delete the 7th row ("Mountain climbing") from the array
   gamesAvgArrayAllTeams <- gamesAvgArrayAllTeams[-7,]
-  write.csv(gamesAvgArrayAllTeams, file = csvOutFile, na="")
+  write.csv(gamesAvgArrayAllTeams, file = csvOutFilePath, na="")
 
-  
-  img <- generateChart(likertPlot, xAxisDim, title, legend=FALSE)
-  # imgTeamResultsCombined <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
-  
-  print(img)
-  dev.off()
 }
 
 xAxisDim <- c(-5, 8) #q1, q4
