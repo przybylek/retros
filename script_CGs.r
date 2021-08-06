@@ -1,6 +1,11 @@
 # Zenodo
 # https://adv-r.hadley.nz/r6.html
-require(HH)
+
+if(!require(HH)){
+    install.packages("HH")
+    library(HH)
+}
+
 
 loadAndReorderSingleQuestionData <- function(path, newOrder, numberOfAllGames) {
   emptyRow <- c(0, 0, 0, 0, 0)
@@ -165,6 +170,35 @@ for (i in seq(1, length(questions))) {
   gamesAvgArrayAllTeams <- gamesAvgArrayAllTeams[-7,]
   write.csv(gamesAvgArrayAllTeams, file = csvOutFilePath, na="")
 }
+
+########## Draw radar charts ##########
+if(!require(fmsb)){
+    install.packages("fmsb")
+    library(fmsb)
+}
+
+par(mar=c(1, 0, 1.5, 0), xpd=TRUE) #bottom, left, top and right margins 
+layout(matrix(1:6, ncol=3)) #draw 6 plots to device
+
+gamePositive_DF <- as.data.frame( t(gamesPositiveRatio) )
+gameNegative_DF <- as.data.frame( t(gamesNegativeRatio) )
+gameNeutral_DF <- 1 - gamePositive_DF - gameNegative_DF
+
+colors_border=c( rgb(0.0,0.0,1.0,0.9), rgb(1.0,0.0,0.0,0.9), rgb(0.7,0.7,0.7,0.9) ) 
+colors_in=c( rgb(0.0,0.0,1.0,0.0), rgb(1.0,0.0,0.0,0.0), rgb(0.7,0.7,0.7,0.0) )
+colors_border=c( "blue", "red", "darkgrey")
+
+lineBelowTitle = 0.5
+
+for(i in 1:6) {
+    data <- rbind(rep(0.7,7), rep(0,7), rbind(gamePositive_DF[i,], gameNegative_DF[i,], gameNeutral_DF[i,]) ) 
+    data <- data[,c("Q1", "Q3", "Q4", "Q5", "Q6")] #without Q2 and Q7
+    radarchart(data , title=gameNames[[i]], line = lineBelowTitle, cex.main = 1.1, seg=3, axistype=1, caxislabels=seq(0.1,0.7,0.2), calcex=0.9, axislabcol="grey30", pty=c(16,1,8), plwd=2, plty=c(1,1,0), vlcex=1.1, pcol=colors_border , pfcol=colors_in  )
+    if(i == 5) { # Use option bty = "n" in legend to remove the box around the legend.
+        legend("topright", inset=c(-0.02,-0.16), legend=c("agree", "disagree", "neutral"), col=c( "blue", "red", "darkgrey"), pch=c(16,1,8), cex=1.05, box.lty=0, bty="n")
+    }
+}
+
 
 
 
