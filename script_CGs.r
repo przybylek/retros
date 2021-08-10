@@ -95,7 +95,7 @@ xAxisDimensions <- list(
   Q2=list(-7, 7),
   Q3=list(-7, 7),
   Q4=list(-5, 8),
-  Q5=list(-8, 8),
+  Q5=list(-7, 8),
   Q6=list(-7, 7),
   Q7=list(-3, 9)
 )
@@ -191,9 +191,10 @@ for (i in seq(1, length(questions))) {
 }
 
 
-heights <- c(1.215,1,1,1,1,1,1.425) 
+# heights <- c(1.215,1,1,1,1,1,1.425) # save as EPS 1000x1300 
+heights <- c(1.18,1,1,1,1,1,1.36) # save as EPS 1000x1500
 grid.arrange(likertPlots[[1]], likertPlots[[2]], likertPlots[[3]], likertPlots[[4]], likertPlots[[5]], likertPlots[[6]], likertPlots[[7]], ncol=1, heights=heights) 
-# save as EPS 1000x1300
+
 
 # https://www.rdocumentation.org/packages/HH/versions/3.1-43/topics/ResizeEtc
 
