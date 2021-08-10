@@ -1,11 +1,11 @@
 # Zenodo
 # https://adv-r.hadley.nz/r6.html
+# http://uc-r.github.io/lists
 
 if(!require(HH)){
     install.packages("HH")
     library(HH)
 }
-
 
 loadAndReorderSingleQuestionData <- function(path, newOrder, numberOfAllGames) {
   emptyRow <- c(0, 0, 0, 0, 0)
@@ -25,16 +25,22 @@ convertIntoArray <- function(gamesDF, gameNames, likertLevels) {
   return(gamesArray)
 }
 
-generateChart <- function(likertArray, xAxisDim, title, legend) {
+removeLegend <- function(img) {  
+  img$legend$bottom$args$text[] <- " "
+  img$legend$bottom$args$rect[] <- 0
+  if (!is.null(img$legend$bottom$args$title)) img$legend$bottom$args$title <- " "
+  return(img)
+}
+
+generateChart <- function(likertArray, xAxisDim, title, legend, bottom.padding=0, top.padding=0) {
   hasSubplots <- if( length(dim(likertArray)) == 3 ) TRUE else FALSE  
-  bottomPadding <- if(legend) -0.5 else -9.5  
-  auto.key <- list(cex = 1.2)
+  auto.key <- list(cex = 0.9) # 1.2 for png
   scales <- list(
     y = list(cex = 1.0), 
     x = list(cex = 1.0)
   )
   par.settings <- list(
-    layout.heights = list(key.axis.padding=0, top.padding=0, bottom.padding=bottomPadding),
+    layout.heights = list(key.axis.padding=-2, top.padding=top.padding, bottom.padding=bottom.padding),
     layout.widths = list(key.right=1.5, right.padding=1.5)
   )
   if(hasSubplots) {
@@ -43,6 +49,7 @@ generateChart <- function(likertArray, xAxisDim, title, legend) {
   } else {
     img <- likert(likertArray, as.percent=TRUE, xlab=NULL, main=title, scales = scales, auto.key = auto.key, par.settings = par.settings)
   }  
+  if(!legend) img <- removeLegend(img)
   return(img)
 }
 
@@ -108,6 +115,9 @@ colnames(gamesPositiveRatio) <- gameNames
 rownames(gamesNegativeRatio) <- names(questions)
 colnames(gamesNegativeRatio) <- gameNames
 
+oneQuestionPerImage <- TRUE
+likertPlots <- list()
+
 for (i in seq(1, length(questions))) {
   question <- questions[i]
   qId <- names(question)
@@ -138,38 +148,55 @@ for (i in seq(1, length(questions))) {
   title = paste(qId, question, sep=". ")
   xAxisDim <- c(unlist(xAxisDimensions[[i]]))
 
-  imgLikert <- generateChart(likertArray, xAxisDim, title, legend=FALSE)
-  # imgTeamResultsCombined <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
 
   ########## Generating png file with Likert charts ###########
-  pngFileName = paste(tolower(qId), "png", sep=".")
-  pngFilePath <- file.path(outDir, pngFileName)    
-  png(pngFilePath, width = 1200, height = 250) #800x300
-  print(imgLikert)
-  dev.off()
+  if(oneQuestionPerImage) {
+    legend <- FALSE 
+    bottom.padding <- if(legend) -0.5 else -7.5
+    imgLikert <- generateChart(likertArray, xAxisDim, title, legend=legend, bottom.padding=bottom.padding)
+    pngFileName = paste(tolower(qId), "png", sep=".")
+    pngFilePath <- file.path(outDir, pngFileName)    
+    png(pngFilePath, width = 1200, height = 250) #800x300
+    print(imgLikert)
+    dev.off()
+  }
+  # imgTeamResultsCombined <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
 
+  if(i==1) imgLikert <- generateChart(likertArray, xAxisDim, title, legend=FALSE, top.padding=4.5, bottom.padding=-5)
+  else if(i==7) imgLikert <- generateChart(likertArray, xAxisDim, title, legend=TRUE, bottom.padding=4)
+  else imgLikert <- generateChart(likertArray, xAxisDim, title, legend=FALSE, bottom.padding=-5)
+
+  likertPlots <- append(likertPlots, list(imgLikert))
 
   # averages for each game
-  t_All <- apply( teamResultsCombined, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
-  gamesAVG[strtoi(i),] <- t_All
+  tmp_All <- apply( teamResultsCombined, 1, function(x) sum( x*c(1, 2, 3, 4, 5)/sum(x) ) )
+  gamesAVG[strtoi(i),] <- tmp_All
 
-  t_positive <- apply( teamResultsCombined, 1, function(x) sum( x*c(0, 0, 0, 1, 1)/sum(x) ) ) # positive opinions / all opinions
-  gamesPositiveRatio[strtoi(i),] <- t_positive
+  tmp_positive <- apply( teamResultsCombined, 1, function(x) sum( x*c(0, 0, 0, 1, 1)/sum(x) ) ) # positive opinions / all opinions
+  gamesPositiveRatio[strtoi(i),] <- tmp_positive
 
-  t_negative <- apply( teamResultsCombined, 1, function(x) sum( x*c(1, 1, 0, 0, 0)/sum(x) ) ) # negative opinions / all opinions
-  gamesNegativeRatio[strtoi(i),] <- t_negative
+  tmp_negative <- apply( teamResultsCombined, 1, function(x) sum( x*c(1, 1, 0, 0, 0)/sum(x) ) ) # negative opinions / all opinions
+  gamesNegativeRatio[strtoi(i),] <- tmp_negative
 
 
   ########## Generating csv file with averages ###########
   csvOutFilePath = file.path(outDir, csvFileName)
 
-  gamesAvgArrayAllTeams <- cbind(gamesAvgArrayAllTeams, t_All)
+  gamesAvgArrayAllTeams <- cbind(gamesAvgArrayAllTeams, tmp_All)
   colnames(gamesAvgArrayAllTeams) <- c(teamNames, "ALL")
 
   #Delete the 7th row ("Mountain climbing") from the array
   gamesAvgArrayAllTeams <- gamesAvgArrayAllTeams[-7,]
   write.csv(gamesAvgArrayAllTeams, file = csvOutFilePath, na="")
 }
+
+
+heights <- c(1.215,1,1,1,1,1,1.425) 
+grid.arrange(likertPlots[[1]], likertPlots[[2]], likertPlots[[3]], likertPlots[[4]], likertPlots[[5]], likertPlots[[6]], likertPlots[[7]], ncol=1, heights=heights) 
+# save as EPS 1000x1300
+
+# https://www.rdocumentation.org/packages/HH/versions/3.1-43/topics/ResizeEtc
+
 
 ########## Draw radar charts ##########
 if(!require(fmsb)){
