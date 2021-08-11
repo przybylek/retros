@@ -57,7 +57,6 @@ setwd(baseDir)
 datasetsDir = file.path(baseDir, "datasets") #subdirectories in "datasets" must be the same as teamNames
 outDir = file.path(baseDir, "out")
 
-teamNames <- c("OKE_A", "OKE_B", "Dyna_A", "Dyna_B", "Senti_A", "Senti_B")
 gameNames <- c("Starfish", "Sailboat", "Mad/Sad/Glad", "Mood++", "5L's", "360 Degrees", "Mountain climbing") #after reordering
 
 #order of the games in the input csv files according to gameNames
@@ -74,7 +73,8 @@ teams <- list(
   list(teamName="Senti_A", gameOrder=gameOrderSentiOne),
   list(teamName="Senti_B", gameOrder=gameOrderSentiOne)
 )
-
+teamNames <- unlist( lapply(teams,  function(t) {t[[1]]}) )
+ 
 likertLevels <- c("Strongly Disagree", "Somewhat Disagree", "Neither Agree nor Disagree", "Somewhat Agree","Strongly Agree")
 
 questions <- list(
