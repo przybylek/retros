@@ -1,15 +1,12 @@
-# Zenodo
-# https://adv-r.hadley.nz/r6.html
-# http://uc-r.github.io/lists
-
 if(!require(HH)){
     install.packages("HH")
     library(HH)
 }
 
 loadAndReorderSingleQuestionData <- function(path, newOrder, numberOfAllGames) {
-  emptyRow <- c(0, 0, 0, 0, 0)
+  # emptyRow <- c(0, 0, 0, 0, 0)
   games <- read.csv(path, sep=";", row.names = 1)
+  emptyRow <- rep(0, ncol(games))
   while (nrow(games) < numberOfAllGames) {#append empty rows if needed
     games[nrow(games) + 1,] <- emptyRow 
   } 
@@ -32,7 +29,7 @@ removeLegend <- function(img) {
   return(img)
 }
 
-generateChart <- function(likertArray, xAxisDim, title, legend, bottom.padding=0, top.padding=0) {
+generateChart <- function(likertArray, xAxisDim, title, legend=TRUE, bottom.padding=0, top.padding=0) {
   hasSubplots <- if( length(dim(likertArray)) == 3 ) TRUE else FALSE  
   auto.key <- list(cex = 0.9) # 1.2 for png
   scales <- list(
@@ -99,21 +96,14 @@ xAxisDimensions <- list(
   Q6=list(-7, 7),
   Q7=list(-3, 9)
 )
-xAxisDim <- c(-9, 9) #generall dimension that fit all plots
 
-
-#gamesAVG and gamesPositiveRatio agregate data for RadarChart
+#gamesAVG, gamesPositiveRatio and gamesNegativeRatio agregate data for RadarChart
 gamesAVG <- matrix(nrow = length(questions), ncol = length(gameNames))
-gamesPositiveRatio <- matrix(nrow = length(questions), ncol = length(gameNames))
-gamesNegativeRatio <- matrix(nrow = length(questions), ncol = length(gameNames))
-
 rownames(gamesAVG) <- names(questions)
 colnames(gamesAVG) <- gameNames
 
-rownames(gamesPositiveRatio) <- names(questions)
-colnames(gamesPositiveRatio) <- gameNames
-rownames(gamesNegativeRatio) <- names(questions)
-colnames(gamesNegativeRatio) <- gameNames
+gamesPositiveRatio <- gamesAVG #a copy of gamesAVG
+gamesNegativeRatio <- gamesAVG
 
 oneQuestionPerImage <- TRUE
 likertPlots <- list()
@@ -149,7 +139,7 @@ for (i in seq(1, length(questions))) {
   xAxisDim <- c(unlist(xAxisDimensions[[i]]))
 
 
-  ########## Generating png file with Likert charts ###########
+  ########## Generating png files with Likert charts ###########
   if(oneQuestionPerImage) {
     legend <- FALSE 
     bottom.padding <- if(legend) -0.5 else -7.5
@@ -205,7 +195,7 @@ if(!require(fmsb)){
     library(fmsb)
 }
 
-par(mar=c(1, 0, 1.5, 0), xpd=TRUE) #bottom, left, top and right margins 
+par(mar=c(0, 0, 1.5, 0), xpd=TRUE) #bottom, left, top and right margins 
 layout(matrix(1:6, ncol=3)) #draw 6 plots to device
 
 gamePositive_DF <- as.data.frame( t(gamesPositiveRatio) )
@@ -226,8 +216,3 @@ for(i in 1:6) {
         legend("topright", inset=c(-0.02,-0.16), legend=c("agree", "disagree", "neutral"), col=c( "blue", "red", "darkgrey"), pch=c(16,1,8), cex=1.05, box.lty=0, bty="n")
     }
 }
-
-
-
-
-
