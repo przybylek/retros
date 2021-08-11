@@ -192,11 +192,13 @@ for (i in seq(1, length(questions))) {
 
 
 # heights <- c(1.215,1,1,1,1,1,1.425) # save as EPS 1000x1300 
-heights <- c(1.18,1,1,1,1,1,1.36) # save as EPS 1000x1500
-grid.arrange(likertPlots[[1]], likertPlots[[2]], likertPlots[[3]], likertPlots[[4]], likertPlots[[5]], likertPlots[[6]], likertPlots[[7]], ncol=1, heights=heights) 
+# heights <- c(1.18,1,1,1,1,1,1.36) # save as EPS 1000x1500
+heights <- rep(1, length(likertPlots))
+heights[1] <- 1.18 
+heights[length(heights)] <- 1.36
+args <- append(likertPlots, list(ncol=1, heights=heights))
+do.call('grid.arrange', args)
 
-
-# https://www.rdocumentation.org/packages/HH/versions/3.1-43/topics/ResizeEtc
 
 
 ########## Draw radar charts ##########
