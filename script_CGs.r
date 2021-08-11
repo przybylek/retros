@@ -162,8 +162,8 @@ for (i in seq(1, length(questions))) {
   }
   # imgTeamResultsCombined <- generateChart(teamResultsCombined, xAxisDim, title, legend=FALSE)
 
-  if(i==1) imgLikert <- generateChart(likertArray, xAxisDim, title, legend=FALSE, top.padding=4.5, bottom.padding=-5)
-  else if(i==7) imgLikert <- generateChart(likertArray, xAxisDim, title, legend=TRUE, bottom.padding=4)
+  if(i==1) imgLikert <- generateChart(likertArray, xAxisDim, title, legend=FALSE, top.padding=0.5, bottom.padding=-5)
+  else if(i==7) imgLikert <- generateChart(likertArray, xAxisDim, title, legend=TRUE, bottom.padding=0) #bottom.padding=4
   else imgLikert <- generateChart(likertArray, xAxisDim, title, legend=FALSE, bottom.padding=-5)
 
   likertPlots <- append(likertPlots, list(imgLikert))
@@ -190,12 +190,10 @@ for (i in seq(1, length(questions))) {
   write.csv(gamesAvgArrayAllTeams, file = csvOutFilePath, na="")
 }
 
-
-# heights <- c(1.215,1,1,1,1,1,1.425) # save as EPS 1000x1300 
-# heights <- c(1.18,1,1,1,1,1,1.36) # save as EPS 1000x1500
+# heights <- c(1.02,1,1,1,1,1,1.192) # save as EPS 1000x1500
 heights <- rep(1, length(likertPlots))
-heights[1] <- 1.18 
-heights[length(heights)] <- 1.36
+heights[1] <- 1.02
+heights[length(heights)] <- 1.192
 args <- append(likertPlots, list(ncol=1, heights=heights))
 do.call('grid.arrange', args)
 
