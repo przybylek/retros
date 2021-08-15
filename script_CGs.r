@@ -145,7 +145,7 @@ for (i in seq(1, length(questions))) {
     bottom.padding <- if(legend) -0.5 else -7.5
     imgLikert <- generateChart(likertArray, xAxisDim, title, legend=legend, bottom.padding=bottom.padding)
     pngFileName = paste(tolower(qId), "png", sep=".")
-    pngFilePath <- file.path(outDir, pngFileName)    
+    pngFilePath <- file.path(outDir, pngFileName)
     png(pngFilePath, width = 1200, height = 250) #800x300
     print(imgLikert)
     dev.off()
@@ -186,11 +186,10 @@ heights[1] <- 1.02
 heights[length(heights)] <- 1.192
 args <- append(likertPlots, list(ncol=1, heights=heights))
 do.call('grid.arrange', args)
-
-
+invisible(line <- readline(prompt="Save the image as EPS 1000x1500. Press [enter] to continue"))
 
 ########## Draw radar charts ##########
-if(!require(fmsb)){
+if(!require(fmsb)) {
     install.packages("fmsb")
     library(fmsb)
 }
